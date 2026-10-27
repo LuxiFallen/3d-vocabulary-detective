@@ -51,12 +51,22 @@
         .pulse-badge {
             animation: pulse-glow 2s infinite;
         }
+        /* Lock screen overlay pointer hint */
+        #mouse-lock-hint {
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 <body class="text-slate-800">
 
     <!-- 3D Canvas Container -->
-    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+    <div id="canvas-container" class="absolute inset-0 z-0 cursor-pointer"></div>
+
+    <!-- Click to Lock Mouse Prompt (Overlay) -->
+    <div id="mouse-lock-hint" class="pointer-events-none absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-slate-900/80 backdrop-blur-md text-amber-300 border border-amber-400/40 text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+        <i class="fa-solid fa-mouse text-amber-400 animate-bounce"></i>
+        <span>Click screen to enable <strong>Mouse Look</strong> (<kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">ESC</kbd> to unlock)</span>
+    </div>
 
     <!-- UI Overlay Layer -->
     <div id="ui-layer" class="relative z-10 pointer-events-none w-full h-full flex flex-col justify-between p-4 md:p-6">
@@ -367,8 +377,17 @@
         let playerVelocity = new THREE.Vector3();
         let isGrounded = true;
 
-        // Camera follow offset
-        const cameraOffset = new THREE.Vector3(0, 5, 9);
+        // Mouse Look & Orbit Camera parameters
+        let isPointerLocked = false;
+        let cameraYaw = 0;       // Horizontal camera angle (radians)
+        let cameraPitch = 0.3;   // Vertical camera angle (radians)
+        const cameraDistance = 9;
+        const minPitch = -0.1;   // Limit looking down
+        const maxPitch = 1.1;    // Limit looking up from above
+
+        // Mobile touch look variables
+        let touchLookId = null;
+        let lastTouchX = 0, lastTouchY = 0;
 
         window.onload = function() {
             initEngine();
@@ -687,6 +706,41 @@
 
         /* --- CONTROLS & EVENT LISTENERS --- */
         function setupEventListeners() {
+            // Pointer Lock Setup for Mouse Look
+            const canvasContainer = document.getElementById('canvas-container');
+            const hintBox = document.getElementById('mouse-lock-hint');
+
+            canvasContainer.addEventListener('click', () => {
+                // Request pointer lock only on non-dialogue/non-notebook screens
+                const dialogueHidden = document.getElementById('dialogue-modal').classList.contains('hidden');
+                const notebookHidden = document.getElementById('notebook-modal').classList.contains('hidden');
+                if (dialogueHidden && notebookHidden) {
+                    canvasContainer.requestPointerLock();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === canvasContainer) {
+                    isPointerLocked = true;
+                    if (hintBox) hintBox.style.opacity = '0';
+                } else {
+                    isPointerLocked = false;
+                    if (hintBox) hintBox.style.opacity = '1';
+                }
+            });
+
+            // Mouse Movement Listener for Camera Rotation
+            document.addEventListener('mousemove', (e) => {
+                if (isPointerLocked) {
+                    const mouseSensitivity = 0.0025;
+                    cameraYaw -= e.movementX * mouseSensitivity;
+                    cameraPitch += e.movementY * mouseSensitivity;
+
+                    // Clamp pitch so camera doesn't flip or clip underground
+                    cameraPitch = THREE.MathUtils.clamp(cameraPitch, minPitch, maxPitch);
+                }
+            });
+
             // Keyboard Keydown & Keyup
             window.addEventListener('keydown', (e) => {
                 keys[e.code] = true;
@@ -702,7 +756,7 @@
             // Window Resize
             window.addEventListener('resize', onWindowResize);
 
-            // Touch Screen Mobile Joystick Simulation Controls
+            // Touch Screen Mobile Controls & Mobile Look Dragging
             setupMobileControls();
         }
 
@@ -712,19 +766,19 @@
             const jumpBtn = document.getElementById('mobile-jump-btn');
             const interactBtn = document.getElementById('mobile-interact-btn');
 
-            let touchId = null;
+            let joystickTouchId = null;
             let startX = 0, startY = 0;
 
             joystickZone.addEventListener('touchstart', (e) => {
                 const touch = e.changedTouches[0];
-                touchId = touch.identifier;
+                joystickTouchId = touch.identifier;
                 startX = touch.clientX;
                 startY = touch.clientY;
             });
 
             joystickZone.addEventListener('touchmove', (e) => {
                 for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchId) {
+                    if (e.changedTouches[i].identifier === joystickTouchId) {
                         const touch = e.changedTouches[i];
                         const dx = touch.clientX - startX;
                         const dy = touch.clientY - startY;
@@ -745,7 +799,7 @@
             });
 
             const resetJoystick = () => {
-                touchId = null;
+                joystickTouchId = null;
                 joystickKnob.style.transform = `translate(0px, 0px)`;
                 keys['KeyW'] = false;
                 keys['KeyS'] = false;
@@ -755,6 +809,46 @@
 
             joystickZone.addEventListener('touchend', resetJoystick);
             joystickZone.addEventListener('touchcancel', resetJoystick);
+
+            // Mobile Touch Screen Drag to Look Around (right side of screen)
+            window.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    // If touch is on the right half of the screen and not touching joystick/buttons
+                    if (t.clientX > window.innerWidth / 2 && touchLookId === null) {
+                        touchLookId = t.identifier;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    if (t.identifier === touchLookId) {
+                        const dx = t.clientX - lastTouchX;
+                        const dy = t.clientY - lastTouchY;
+                        lastTouchX = t.clientX;
+                        lastTouchY = t.clientY;
+
+                        const touchSensitivity = 0.005;
+                        cameraYaw -= dx * touchSensitivity;
+                        cameraPitch += dy * touchSensitivity;
+                        cameraPitch = THREE.MathUtils.clamp(cameraPitch, minPitch, maxPitch);
+                    }
+                }
+            });
+
+            const resetTouchLook = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchLookId) {
+                        touchLookId = null;
+                    }
+                }
+            };
+            window.addEventListener('touchend', resetTouchLook);
+            window.addEventListener('touchcancel', resetTouchLook);
 
             // Jump & Interact Buttons
             jumpBtn.addEventListener('touchstart', (e) => {
@@ -792,25 +886,32 @@
         }
 
         function updatePlayerMovement(delta) {
-            // Movement Vector relative to world
-            let moveX = 0;
-            let moveZ = 0;
+            // Movement Vector relative to camera direction
+            let inputForward = 0;
+            let inputRight = 0;
 
-            if (keys['KeyW'] || keys['ArrowUp']) moveZ -= 1;
-            if (keys['KeyS'] || keys['ArrowDown']) moveZ += 1;
-            if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
-            if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
+            if (keys['KeyW'] || keys['ArrowUp']) inputForward += 1;
+            if (keys['KeyS'] || keys['ArrowDown']) inputForward -= 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) inputRight -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) inputRight += 1;
 
-            const inputDir = new THREE.Vector3(moveX, 0, moveZ).normalize();
+            if (inputForward !== 0 || inputRight !== 0) {
+                // Calculate movement vector relative to camera Yaw angle
+                const forwardVector = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw)).normalize();
+                const rightVector = new THREE.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw)).normalize();
 
-            if (inputDir.length() > 0) {
-                // Rotate player towards movement direction
-                const targetRotation = Math.atan2(inputDir.x, inputDir.z);
-                playerMesh.rotation.y = THREE.MathUtils.lerp(playerMesh.rotation.y, targetRotation, 0.15);
+                const moveDirection = new THREE.Vector3()
+                    .addScaledVector(forwardVector, inputForward)
+                    .addScaledVector(rightVector, inputRight)
+                    .normalize();
 
-                // Apply velocity
-                playerMesh.position.x += inputDir.x * playerSpeed * delta;
-                playerMesh.position.z += inputDir.z * playerSpeed * delta;
+                // Rotate player mesh smoothly to face the movement direction
+                const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
+                playerMesh.rotation.y = THREE.MathUtils.lerp(playerMesh.rotation.y, targetAngle, 0.2);
+
+                // Apply world position step
+                playerMesh.position.x += moveDirection.x * playerSpeed * delta;
+                playerMesh.position.z += moveDirection.z * playerSpeed * delta;
             }
 
             // Jump & Gravity Physics
@@ -836,10 +937,22 @@
         }
 
         function updateCamera() {
-            // Smooth Camera follow behind player
-            const targetPos = playerMesh.position.clone().add(cameraOffset);
-            camera.position.lerp(targetPos, 0.08);
-            camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
+            // Calculate 3D spherical camera position relative to the player
+            const targetHeadPos = playerMesh.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+
+            const cx = cameraDistance * Math.sin(cameraYaw) * Math.cos(cameraPitch);
+            const cy = cameraDistance * Math.sin(cameraPitch);
+            const cz = cameraDistance * Math.cos(cameraYaw) * Math.cos(cameraPitch);
+
+            const desiredCameraPos = new THREE.Vector3(
+                targetHeadPos.x + cx,
+                targetHeadPos.y + cy,
+                targetHeadPos.z + cz
+            );
+
+            // Smoothly move camera to target position
+            camera.position.lerp(desiredCameraPos, 0.15);
+            camera.lookAt(targetHeadPos);
         }
 
         function animateWorldElements() {
@@ -888,6 +1001,11 @@
 
         /* --- DIALOGUE & QUESTION MODAL SYSTEM --- */
         function openDialogue(quest) {
+            // Exit pointer lock when dialogue pops up
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+
             const modal = document.getElementById('dialogue-modal');
             const avatarBg = document.getElementById('npc-avatar-bg');
             const avatarIcon = document.getElementById('npc-avatar-icon');
@@ -986,11 +1104,17 @@
         }
 
         function toggleNotebook() {
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
             const modal = document.getElementById('notebook-modal');
             modal.classList.toggle('hidden');
         }
 
         function triggerVictory() {
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
             document.getElementById('final-score').innerText = `${gameState.score} PTS`;
             document.getElementById('victory-modal').classList.remove('hidden');
         }
