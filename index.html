@@ -3,413 +3,461 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESL Detective 3D - Year 4 Grammar Mystery</title>
+    <title>ESL Detective: Grammar Mystery 3D</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Font Awesome Icons -->
+    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
     <style>
-        body {
-            font-family: 'Quicksand', sans-serif;
+        * {
+            font-family: 'Fredoka', cursive, sans-serif;
             user-select: none;
-            -webkit-user-select: none;
-            overflow: hidden;
-            background-color: #0f172a;
-        }
-        .font-game {
-            font-family: 'Fredoka One', cursive;
         }
         canvas {
             display: block;
             width: 100vw;
             height: 100vh;
         }
-        /* Custom Scrollbar for Notebook */
+        /* Custom scrollbars */
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 8px;
+            background: #f1f1f1;
+            border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 8px;
+            background: #fbbf24;
+            border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        .bounce-anim {
+            animation: bounce 1.5s infinite;
         }
-        /* Glow animations */
-        @keyframes pulse-glow {
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)); }
-            50% { transform: scale(1.05); filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.9)); }
-        }
-        .pulse-badge {
-            animation: pulse-glow 2s infinite;
-        }
-        /* Lock screen overlay pointer hint */
-        #mouse-lock-hint {
-            transition: opacity 0.3s ease;
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="bg-slate-900 text-slate-800 overflow-hidden select-none">
 
     <!-- 3D Canvas Container -->
-    <div id="canvas-container" class="absolute inset-0 z-0 cursor-pointer"></div>
+    <div id="canvas-container" class="relative w-full h-screen"></div>
 
-    <!-- Click to Lock Mouse Prompt (Overlay) -->
-    <div id="mouse-lock-hint" class="pointer-events-none absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-slate-900/80 backdrop-blur-md text-amber-300 border border-amber-400/40 text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-        <i class="fa-solid fa-mouse text-amber-400 animate-bounce"></i>
-        <span>Click screen to enable <strong>Mouse Look</strong> (<kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">ESC</kbd> to unlock)</span>
-    </div>
-
-    <!-- UI Overlay Layer -->
-    <div id="ui-layer" class="relative z-10 pointer-events-none w-full h-full flex flex-col justify-between p-4 md:p-6">
-        
-        <!-- Top Bar: Header & Score -->
+    <!-- HUD Overlay -->
+    <div id="hud" class="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col justify-between p-4 md:p-6 z-10">
+        <!-- Top Bar -->
         <div class="flex justify-between items-start w-full">
-            <!-- Game Title & Detective Badge -->
-            <div class="pointer-events-auto bg-slate-900/85 backdrop-blur-md text-white p-3 md:p-4 rounded-2xl border-2 border-amber-400/50 shadow-xl flex items-center gap-3">
-                <div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-2xl text-slate-900 shadow-inner font-bold">
-                    <i class="fa-solid fa-magnifying-glass"></i>
+            <!-- Player Status Card -->
+            <div class="bg-white/90 backdrop-blur-md p-3 md:p-4 rounded-2xl shadow-xl border-4 border-amber-400 flex items-center gap-4 pointer-events-auto">
+                <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white text-2xl shadow-inner border-2 border-white">
+                    🔍
                 </div>
                 <div>
-                    <h1 class="font-game text-lg md:text-xl text-amber-400 tracking-wide">ESL DETECTIVE</h1>
-                    <p class="text-xs text-slate-300">Year 4 English Quest</p>
+                    <h1 class="text-sm text-slate-500 font-bold uppercase tracking-wider">Detective Student</h1>
+                    <div class="flex items-center gap-3">
+                        <span id="player-name-display" class="font-bold text-lg text-slate-800">Junior Sleuth</span>
+                        <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">Year 4 ESL</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Stats & Notebook Button -->
-            <div class="flex items-center gap-3 pointer-events-auto">
-                <div class="bg-slate-900/85 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl border border-slate-700 flex items-center gap-4 shadow-xl">
-                    <div class="flex items-center gap-1.5 text-amber-400 font-game text-lg">
-                        <i class="fa-solid fa-star text-amber-400"></i>
-                        <span id="star-count">0 / 5</span>
-                    </div>
-                    <div class="h-6 w-px bg-slate-700"></div>
-                    <div class="flex items-center gap-1.5 text-cyan-400 font-game text-sm">
-                        <i class="fa-solid fa-trophy"></i>
-                        <span id="score-text">0 PTS</span>
+            <!-- Score & Clues Tracker -->
+            <div class="flex gap-3 pointer-events-auto">
+                <div class="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border-4 border-emerald-400 flex items-center gap-3">
+                    <span class="text-2xl">⭐</span>
+                    <div>
+                        <div class="text-xs text-slate-500 font-bold uppercase">Score</div>
+                        <div id="score-display" class="text-xl font-bold text-emerald-600">0 / 500</div>
                     </div>
                 </div>
-
-                <button id="notebook-btn" onclick="toggleNotebook()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-slate-950 font-game px-4 py-2.5 rounded-2xl shadow-lg border-b-4 border-amber-700 flex items-center gap-2">
-                    <i class="fa-solid fa-book-bookmark text-lg"></i>
-                    <span class="hidden sm:inline">Notebook</span>
+                <div class="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border-4 border-sky-400 flex items-center gap-3">
+                    <span class="text-2xl">🔎</span>
+                    <div>
+                        <div class="text-xs text-slate-500 font-bold uppercase">Clues</div>
+                        <div id="clues-display" class="text-xl font-bold text-sky-600">0 / 5</div>
+                    </div>
+                </div>
+                <!-- Google Sheet Setup Button -->
+                <button id="btn-open-settings" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl shadow-xl border-2 border-indigo-400 font-bold flex items-center justify-center transition hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-gear text-xl"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Center Proximity Prompt -->
-        <div id="interaction-prompt" class="self-center mb-8 pointer-events-auto transition-all duration-300 opacity-0 transform translate-y-4">
-            <button onclick="triggerCurrentInteraction()" class="bg-slate-900/90 text-amber-400 border-2 border-amber-400 font-game px-6 py-3 rounded-full text-lg md:text-xl shadow-2xl flex items-center gap-3 hover:bg-amber-400 hover:text-slate-950 transition-all pulse-badge">
-                <span class="bg-amber-400 text-slate-900 text-xs px-2 py-1 rounded-md font-bold uppercase tracking-wider">Press E</span>
-                <span id="prompt-action-text">Talk to Detective Sam</span>
-            </button>
+        <!-- Center Prompt (e.g., "Press E or Tap to Talk") -->
+        <div id="interaction-prompt" class="self-center mb-24 opacity-0 transition-all duration-300 transform translate-y-4">
+            <div class="bg-amber-500 text-white px-6 py-3 rounded-full text-lg font-bold shadow-2xl border-4 border-white flex items-center gap-3 bounce-anim">
+                <span class="bg-white text-amber-600 px-3 py-1 rounded-full text-sm font-extrabold shadow">E</span>
+                <span id="prompt-text">Talk to Mayor Owl</span>
+            </div>
         </div>
 
-        <!-- Bottom Bar: Instructions / Controls Overlay -->
-        <div class="flex justify-between items-end w-full">
-            <!-- Controls Legend -->
-            <div class="pointer-events-auto bg-slate-900/80 backdrop-blur-md text-slate-300 text-xs p-3 rounded-xl border border-slate-700/60 hidden sm:flex gap-4">
-                <div class="flex items-center gap-1.5">
-                    <kbd class="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-600 font-bold">WASD</kbd> Move
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <kbd class="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-600 font-bold">SPACE</kbd> Jump
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <kbd class="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-600 font-bold">E</kbd> Interact
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <kbd class="bg-slate-800 text-amber-300 px-2 py-1 rounded border border-slate-600 font-bold">Mouse</kbd> Look Around
-                </div>
+        <!-- Touch Controls for Mobile/Tablet -->
+        <div id="touch-controls" class="pointer-events-auto md:hidden flex justify-between items-end mb-4 px-2">
+            <!-- Virtual Joystick Zone -->
+            <div id="joystick-zone" class="w-32 h-32 bg-white/20 border-2 border-white/40 rounded-full relative flex items-center justify-center touch-none">
+                <div id="joystick-knob" class="w-14 h-14 bg-amber-400/80 rounded-full shadow-lg border-2 border-white absolute"></div>
             </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-4 items-center">
+                <button id="btn-touch-interact" class="w-16 h-16 bg-amber-500 active:bg-amber-600 border-4 border-white text-white rounded-full font-bold shadow-xl flex items-center justify-center text-2xl active:scale-95">
+                    💬
+                </button>
+                <button id="btn-touch-jump" class="w-16 h-16 bg-emerald-500 active:bg-emerald-600 border-4 border-white text-white rounded-full font-bold shadow-xl flex items-center justify-center text-xl active:scale-95">
+                    🦘
+                </button>
+            </div>
+        </div>
+    </div>
 
-            <!-- Mobile Touch Controls overlay (Visible only on touch screens / small screens) -->
-            <div id="mobile-controls" class="sm:hidden pointer-events-auto flex items-end justify-between w-full">
-                <!-- Virtual Joystick Zone -->
-                <div id="joystick-zone" class="w-28 h-28 bg-slate-900/60 rounded-full border border-slate-600/50 flex items-center justify-center relative touch-none">
-                    <div id="joystick-knob" class="w-12 h-12 bg-amber-500/80 rounded-full absolute shadow-lg"></div>
+    <!-- Start / Name Entry Modal -->
+    <div id="modal-start" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border-4 border-amber-400 text-center relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-200 rounded-full blur-2xl opacity-50"></div>
+            <div class="text-6xl mb-4">🕵️‍♂️</div>
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-2">ESL Detective Academy</h2>
+            <p class="text-slate-600 text-sm mb-6">Solve English mysteries, help town residents, and earn your Master Detective badge!</p>
+
+            <form id="form-start-game" class="space-y-4">
+                <div class="text-left">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Detective Name</label>
+                    <input type="text" id="input-student-name" required placeholder="Enter your name..." 
+                        class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-400 focus:outline-none text-slate-800 font-bold text-lg bg-slate-50">
                 </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex gap-2">
-                    <button id="mobile-jump-btn" class="w-14 h-14 bg-slate-800/80 active:bg-amber-500 border border-slate-600 rounded-full text-white font-game text-sm flex items-center justify-center shadow-lg">
-                        JUMP
-                    </button>
-                    <button id="mobile-interact-btn" class="w-14 h-14 bg-amber-500 active:bg-amber-400 border border-amber-300 rounded-full text-slate-900 font-game text-xl flex items-center justify-center shadow-lg">
-                        <i class="fa-solid fa-comments"></i>
-                    </button>
+                <div class="text-left">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Class / Section</label>
+                    <input type="text" id="input-student-class" required placeholder="e.g. Year 4 Blue" 
+                        class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-400 focus:outline-none text-slate-800 font-bold text-lg bg-slate-50">
                 </div>
-            </div>
+
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-lg py-4 rounded-xl shadow-lg border-b-4 border-amber-700 transition transform hover:-translate-y-0.5 active:translate-y-0 mt-2">
+                    START INVESTIGATION 🚀
+                </button>
+            </form>
         </div>
     </div>
 
     <!-- Dialogue / Question Modal -->
-    <div id="dialogue-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 text-white border-2 border-amber-400/70 rounded-3xl max-w-xl w-full p-6 shadow-2xl relative transform transition-all">
-            
-            <!-- NPC Profile Header -->
-            <div class="flex items-center gap-4 border-b border-slate-800 pb-4 mb-4">
-                <div id="npc-avatar-bg" class="w-16 h-16 rounded-2xl bg-amber-500 flex items-center justify-center text-3xl text-slate-900 shadow-md">
-                    <i id="npc-avatar-icon" class="fa-solid fa-user-ninja"></i>
+    <div id="modal-dialogue" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border-4 border-sky-400 relative animate-fade-in">
+            <!-- NPC Header Info -->
+            <div class="flex items-center gap-4 mb-4 pb-4 border-b border-slate-100">
+                <div id="npc-avatar" class="w-16 h-16 bg-sky-100 rounded-2xl flex items-center justify-center text-3xl border-2 border-sky-300 shadow-sm">
+                    🦉
                 </div>
                 <div>
-                    <h3 id="npc-name" class="font-game text-xl text-amber-400">Detective Officer</h3>
-                    <p id="npc-role" class="text-xs text-slate-400">Town Guide</p>
+                    <h3 id="npc-name" class="text-2xl font-bold text-slate-800">Mayor Owl</h3>
+                    <p id="npc-role" class="text-xs font-bold text-sky-600 uppercase tracking-wide">Town Leader</p>
                 </div>
-                <button onclick="closeDialogue()" class="ml-auto text-slate-400 hover:text-white text-xl p-2">
-                    <i class="fa-solid fa-xmark"></i>
+                <button id="btn-close-dialogue" class="ml-auto w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center transition">
+                    ✕
                 </button>
             </div>
 
-            <!-- Dialogue Speech Box -->
-            <div id="speech-box" class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700 mb-6 text-sm md:text-base leading-relaxed text-slate-200">
-                "Hello Detective! Can you help me solve this grammar clue?"
+            <!-- Dialogue Story Text -->
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
+                <p id="dialogue-text" class="text-slate-700 text-base md:text-lg leading-relaxed">
+                    Hello Detective! Someone mixed up all the signs in our town. Can you answer this English question to help us out?
+                </p>
             </div>
 
-            <!-- Question Options Box -->
-            <div id="options-container" class="grid grid-cols-1 gap-3">
-                <!-- Buttons injected dynamically -->
+            <!-- Question Box -->
+            <div id="question-container" class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-bold uppercase" id="question-category">Grammar</span>
+                    <span class="text-xs text-slate-400 font-semibold">Select the correct answer:</span>
+                </div>
+                <h4 id="question-text" class="text-lg md:text-xl font-bold text-slate-800">
+                    Which word correctly completes the sentence? "Yesterday, I _____ a strange clue in the park."
+                </h4>
+
+                <!-- Options Grid -->
+                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <!-- Options injected dynamically -->
+                </div>
             </div>
 
-            <!-- Feedback Alert -->
-            <div id="feedback-box" class="mt-4 p-3 rounded-xl hidden font-medium text-sm flex items-center gap-2">
-                <i id="feedback-icon" class="fa-solid"></i>
-                <span id="feedback-text">Correct answer!</span>
+            <!-- Feedback / Result Area -->
+            <div id="feedback-area" class="hidden mt-4 p-4 rounded-xl text-center font-bold text-lg"></div>
+        </div>
+    </div>
+
+    <!-- Settings / Google Sheet Setup Modal -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl border-4 border-indigo-400 relative">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-csv text-emerald-600"></i> Google Sheet Integration Setup
+                </h3>
+                <button id="btn-close-settings" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold">✕</button>
+            </div>
+
+            <p class="text-slate-600 text-sm mb-4">
+                To automatically save your students' results directly into a Google Sheet, paste your <strong>Google Apps Script Web App URL</strong> below.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Web App Deployment URL</label>
+                    <input type="url" id="input-script-url" placeholder="https://script.google.com/macros/s/.../exec"
+                        class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:outline-none text-slate-800 text-sm bg-slate-50">
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-2">
+                    <p class="font-bold text-indigo-700">📜 How to get your Google Apps Script URL:</p>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Create a Google Sheet and click <strong>Extensions &gt; Apps Script</strong>.</li>
+                        <li>Paste the code provided at the end of the game summary or documentation.</li>
+                        <li>Click <strong>Deploy &gt; New Deployment</strong> &rarr; Select type: <strong>Web app</strong>.</li>
+                        <li>Set <em>Who has access</em> to <strong>"Anyone"</strong> and click <strong>Deploy</strong>.</li>
+                        <li>Copy the Web App URL and paste it here!</li>
+                    </ol>
+                </div>
+
+                <button id="btn-save-settings" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-xl shadow-lg transition">
+                    SAVE CONFIGURATION
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Detective Notebook Modal -->
-    <div id="notebook-modal" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="bg-amber-50 border-4 border-amber-800 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative text-slate-800 flex flex-col max-h-[85vh]">
-            
-            <!-- Header -->
-            <div class="flex justify-between items-center border-b-2 border-amber-800/20 pb-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-book-open text-2xl text-amber-800"></i>
-                    <h2 class="font-game text-2xl text-amber-900 tracking-wide">Detective Case File</h2>
+    <!-- Final Game Summary & Google Sheets Submission Modal -->
+    <div id="modal-summary" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl border-4 border-amber-400 text-center relative max-h-[90vh] overflow-y-auto">
+            <div class="text-6xl mb-2 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-extrabold text-slate-800">Case Solved!</h2>
+            <p class="text-slate-500 text-sm mb-6">Master Detective Certificate Earned</p>
+
+            <!-- Results Card -->
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <span class="block text-xs text-slate-500 font-bold uppercase">Detective</span>
+                    <span id="summary-name" class="text-base font-extrabold text-amber-900">-</span>
                 </div>
-                <button onclick="toggleNotebook()" class="text-amber-800 hover:text-amber-950 text-2xl p-1">
-                    <i class="fa-solid fa-xmark"></i>
+                <div>
+                    <span class="block text-xs text-slate-500 font-bold uppercase">Final Score</span>
+                    <span id="summary-score" class="text-lg font-extrabold text-emerald-600">0</span>
+                </div>
+                <div>
+                    <span class="block text-xs text-slate-500 font-bold uppercase">Accuracy</span>
+                    <span id="summary-accuracy" class="text-lg font-extrabold text-sky-600">0%</span>
+                </div>
+            </div>
+
+            <!-- Send Status Message -->
+            <div id="sheet-status-box" class="mb-6 p-4 rounded-xl border hidden text-sm font-bold"></div>
+
+            <div class="flex flex-col gap-3">
+                <button id="btn-submit-sheet" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-4 rounded-xl shadow-lg border-b-4 border-emerald-700 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i> RECORD TO GOOGLE SHEET
+                </button>
+                <button id="btn-show-appscript-code" class="text-xs text-indigo-600 hover:underline font-bold py-1">
+                    📋 Click to view Apps Script code template for Google Sheets
+                </button>
+                <button id="btn-restart-game" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold py-3 rounded-xl transition">
+                    PLAY AGAIN 🔄
                 </button>
             </div>
 
-            <!-- Content Area -->
-            <div class="overflow-y-auto space-y-4 pr-2 flex-grow">
-                <div class="bg-amber-100/60 p-4 rounded-xl border border-amber-300">
-                    <h3 class="font-game text-amber-900 mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-bullseye"></i> Mission Objective
-                    </h3>
-                    <p class="text-sm text-amber-800">Explore Mystery Town, talk to citizens, examine clues, and answer ESL Year 4 English questions to collect all 5 Detective Stars!</p>
-                </div>
-
-                <!-- Clue Log -->
-                <div>
-                    <h3 class="font-game text-amber-900 mb-3 text-lg">Discovered Clues & Grammar Notes</h3>
-                    <div id="clues-list" class="space-y-3">
-                        <!-- Clues injected dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer Badge -->
-            <div class="mt-6 pt-4 border-t border-amber-800/20 flex justify-between items-center text-xs font-semibold text-amber-800">
-                <span>YEAR 4 ESL GRAMMAR QUEST</span>
-                <span id="notebook-completion">0 / 5 Quests Completed</span>
+            <!-- Apps Script Code Accordion -->
+            <div id="appscript-code-box" class="hidden mt-4 text-left bg-slate-900 text-slate-100 p-4 rounded-2xl text-xs overflow-x-auto relative">
+                <button id="btn-copy-code" class="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs font-bold">Copy</button>
+                <p class="text-amber-400 font-bold mb-2">// Copy & paste this into Google Apps Script (Code.gs):</p>
+                <pre class="font-mono text-[11px] leading-relaxed">
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  
+  // Headers check
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["Timestamp", "Student Name", "Class", "Score", "Clues Found", "Accuracy (%)", "Time Spent (s)"]);
+  }
+  
+  sheet.appendRow([
+    new Date(),
+    data.studentName,
+    data.studentClass,
+    data.score,
+    data.cluesFound,
+    data.accuracy,
+    data.timeTaken
+  ]);
+  
+  return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+                </pre>
             </div>
         </div>
     </div>
 
-    <!-- Game Victory Modal -->
-    <div id="victory-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border-4 border-amber-400 rounded-3xl max-w-md w-full p-8 shadow-2xl text-center text-white">
-            <div class="w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center text-4xl text-slate-950 mx-auto mb-4 animate-bounce">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-            <h2 class="font-game text-3xl text-amber-400 mb-2">MYSTERY SOLVED!</h2>
-            <p class="text-slate-300 text-sm mb-6">Congratulations Master Detective! You answered all Year 4 English challenges correctly and brought peace to Mystery Town!</p>
-            
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 flex justify-around">
-                <div>
-                    <div class="text-xs text-slate-400">Total Score</div>
-                    <div id="final-score" class="font-game text-xl text-amber-400">500 PTS</div>
-                </div>
-                <div class="h-8 w-px bg-slate-700"></div>
-                <div>
-                    <div class="text-xs text-slate-400">Stars</div>
-                    <div class="font-game text-xl text-amber-400">5 / 5 ★</div>
-                </div>
-            </div>
-
-            <button onclick="location.reload()" class="w-full bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-slate-950 font-game py-3 rounded-2xl text-lg shadow-xl">
-                PLAY AGAIN
-            </button>
-        </div>
-    </div>
-
-    <!-- MAIN GAME LOGIC SCRIPT -->
+    <!-- MAIN GAME LOGIC & THREE.JS IMPLEMENTATION -->
     <script>
-        /* --- GAME & ESL QUEST DATA (YEAR 4 SYLLABUS) --- */
+        /**
+         * ESL YEAR 4 QUESTION BANK
+         */
         const QUEST_DATA = [
             {
-                id: 'officer_sam',
-                name: 'Officer Sam',
-                role: 'Police Detective',
-                avatar: 'fa-user-ninja',
-                avatarBg: 'bg-blue-500',
-                position: { x: 0, z: -8 },
-                badgeText: 'Talk to Officer Sam',
-                speech: "Welcome to Mystery Town! Someone misplaced the town key yesterday while it was raining. Let's practice Past Continuous tense!",
-                question: "Complete the sentence: Yesterday at 4 PM, I ________ in the park when I lost my keys.",
-                options: [
-                    "was walking",
-                    "walked",
-                    "am walking",
-                    "were walking"
-                ],
-                correct: 0,
-                clue: "Grammar Note: Use 'was/were + verb(-ing)' for actions happening at a specific past time (Past Continuous)."
-            },
-            {
-                id: 'baker_lucy',
-                name: 'Baker Lucy',
-                role: 'Town Bakery Owner',
-                avatar: 'fa-wheat-awn',
-                avatarBg: 'bg-amber-500',
-                position: { x: -14, z: 6 },
-                badgeText: 'Talk to Baker Lucy',
-                speech: "Hello Detective! I am comparing my delicious cakes. Can you help me choose the correct comparative adjective?",
-                question: "Which sentence uses the correct comparison?",
-                options: [
-                    "Chocolate cake is more sweet than bread.",
-                    "Chocolate cake is sweeter than bread.",
-                    "Chocolate cake is sweetest than bread.",
-                    "Chocolate cake is sweet than bread."
-                ],
+                id: 'npc_owl',
+                name: 'Mayor Owl',
+                role: 'Town Mayor',
+                avatar: '🦉',
+                dialogue: "Greetings, young detective! A thief stole the town clock's hand. I saw someone running away, but I can't remember the right past-tense verb to describe it!",
+                category: 'Grammar (Past Simple)',
+                question: 'Which is the correct past simple tense of the verb "RUN"?',
+                options: ['Runned', 'Ran', 'Running', 'Runs'],
                 correct: 1,
-                clue: "Grammar Note: Short adjectives take '-er than' for comparisons (e.g., sweet -> sweeter than)."
+                clue: 'Clue #1: The thief left footprints heading towards the park bakery!'
             },
             {
-                id: 'magical_owl',
-                name: 'Professor Owl',
-                role: 'Wise Creature',
-                avatar: 'fa-crow',
-                avatarBg: 'bg-purple-500',
-                position: { x: 14, z: -10 },
-                badgeText: 'Examine Wise Owl',
-                speech: "Hoo hoo! I guard the magic fountain. Let's test your knowledge of Prepositions of Place!",
-                question: "Where is the cat? 'The cat is hiding ________ the big tree because it is scared.'",
-                options: [
-                    "behind",
-                    "between",
-                    "among",
-                    "in front of"
-                ],
+                id: 'npc_bear',
+                name: 'Chef Bear',
+                role: 'Master Baker',
+                avatar: '🐻',
+                dialogue: "Welcome to my bakery, detective! Someone altered my recipe book! I need to know the correct preposition to place the apples.",
+                category: 'Prepositions of Place',
+                question: 'Complete the sentence: "Put the fresh red apples _____ the big wooden table."',
+                options: ['on', 'under', 'between', 'inside of'],
                 correct: 0,
-                clue: "Prepositions Note: 'Behind' means at the back of something."
+                clue: 'Clue #2: A piece of blue fabric was caught on the bakery fence!'
             },
             {
-                id: 'mysterious_chest',
-                name: 'Ancient Treasure Chest',
-                role: 'Interactive Object',
-                avatar: 'fa-box-open',
-                avatarBg: 'bg-emerald-500',
-                position: { x: 12, z: 12 },
-                badgeText: 'Inspect Chest',
-                speech: "The chest is locked with a digital time-lock key! Solve this time expression challenge to open it.",
-                question: "Select the correct frequency adverb order: 'She ________ late for school.'",
-                options: [
-                    "is never",
-                    "never is",
-                    "is always never",
-                    "never goes"
-                ],
-                correct: 0,
-                clue: "Grammar Note: Adverbs of frequency (always, never, usually) come AFTER the verb 'to be'."
+                id: 'npc_robot',
+                name: 'Robo-Helper',
+                role: 'Town Guide',
+                avatar: '🤖',
+                dialogue: "BEEP BOOP! Error in system dictionary! Help me identify the correct comparative adjective so I can reboot my navigation module!",
+                category: 'Adjectives (Comparatives)',
+                question: 'Which word completes the comparison? "A detective car is _____ than a bicycle."',
+                options: ['fast', 'more fast', 'faster', 'fastest'],
+                correct: 2,
+                clue: 'Clue #3: The intruder was carrying a large blue backpack!'
             },
             {
-                id: 'wizard_glen',
-                name: 'Wizard Glen',
-                role: 'Town Spellcaster',
-                avatar: 'fa-hat-wizard',
-                avatarBg: 'bg-rose-500',
-                position: { x: -10, z: -16 },
-                badgeText: 'Talk to Wizard Glen',
-                speech: "Greetings Young Detective! Solve my final Superlative puzzle to reveal the town's hidden treasure!",
-                question: "Complete the sentence: Mount Everest is the ________ mountain in the world.",
-                options: [
-                    "highest",
-                    "higher",
-                    "most high",
-                    "more higher"
-                ],
-                correct: 0,
-                clue: "Grammar Note: Use 'the -est' for superlative degree when comparing 3 or more things."
+                id: 'obj_clock',
+                name: 'Ancient Clock Tower',
+                role: 'Town Landmark',
+                avatar: '⏰',
+                dialogue: "The clock mechanism has a riddle lock inscribed on its brass plaque!",
+                category: 'Vocabulary & Reading',
+                question: 'I am full of keys, but I cannot open any door. What am I?',
+                options: ['A key chain', 'A piano', 'A map', 'A clock'],
+                correct: 1,
+                clue: 'Clue #4: Shiny metal gears were dropped near the fountain!'
+            },
+            {
+                id: 'npc_fox',
+                name: 'Sly Fox',
+                role: 'Mysterious Suspect',
+                avatar: '🦊',
+                dialogue: "Aha! You caught up to me, Detective! But to prove I took the clock hand, you must solve my final grammar challenge!",
+                category: 'Conjunctions',
+                question: 'Choose the best word: "I wanted to go to the park, _____ it started raining heavily."',
+                options: ['because', 'but', 'so', 'or'],
+                correct: 1,
+                clue: 'Clue #5: You recovered the stolen Clock Hand! Case Solved!'
             }
         ];
 
-        // Game State Variables
-        let gameState = {
-            stars: 0,
+        // Global State
+        const state = {
+            studentName: '',
+            studentClass: '',
             score: 0,
-            completedQuests: new Set(),
-            activeQuest: null
+            cluesFound: 0,
+            totalAnswered: 0,
+            correctAnswers: 0,
+            startTime: 0,
+            gameCompleted: false,
+            googleScriptUrl: localStorage.getItem('esl_detective_script_url') || 'https://script.google.com/macros/s/AKfycbxHqXjIqd5jOgm_FVXs2dNQf3TjYiw9zY1t1vq02FgoMTNj7Edhf0KUt9DRjvVvxuoWwA/exec',
+            activeQuest: null,
+            interactableInRange: null
         };
 
-        /* --- THREE.JS ENGINE SETUP --- */
-        let scene, camera, renderer, clock;
-        let playerMesh, playerBody;
-        let npcMeshes = [];
-        let keys = {};
-        
-        // Player Physics & Movement parameters
-        const playerSpeed = 8;
-        const jumpForce = 8;
-        const gravity = -20;
-        let playerVelocity = new THREE.Vector3();
+        // UI Element References
+        const ui = {
+            modalStart: document.getElementById('modal-start'),
+            modalDialogue: document.getElementById('modal-dialogue'),
+            modalSettings: document.getElementById('modal-settings'),
+            modalSummary: document.getElementById('modal-summary'),
+            formStart: document.getElementById('form-start-game'),
+            inputName: document.getElementById('input-student-name'),
+            inputClass: document.getElementById('input-student-class'),
+            inputScriptUrl: document.getElementById('input-script-url'),
+            displayName: document.getElementById('player-name-display'),
+            displayScore: document.getElementById('score-display'),
+            displayClues: document.getElementById('clues-display'),
+            prompt: document.getElementById('interaction-prompt'),
+            promptText: document.getElementById('prompt-text'),
+            npcAvatar: document.getElementById('npc-avatar'),
+            npcName: document.getElementById('npc-name'),
+            npcRole: document.getElementById('npc-role'),
+            dialogueText: document.getElementById('dialogue-text'),
+            questionCategory: document.getElementById('question-category'),
+            questionText: document.getElementById('question-text'),
+            optionsGrid: document.getElementById('options-grid'),
+            feedbackArea: document.getElementById('feedback-area'),
+            btnCloseDialogue: document.getElementById('btn-close-dialogue'),
+            btnOpenSettings: document.getElementById('btn-open-settings'),
+            btnCloseSettings: document.getElementById('btn-close-settings'),
+            btnSaveSettings: document.getElementById('btn-save-settings'),
+            btnSubmitSheet: document.getElementById('btn-submit-sheet'),
+            btnShowCode: document.getElementById('btn-show-appscript-code'),
+            codeBox: document.getElementById('appscript-code-box'),
+            btnCopyCode: document.getElementById('btn-copy-code'),
+            btnRestart: document.getElementById('btn-restart-game'),
+            sheetStatusBox: document.getElementById('sheet-status-box'),
+            summaryName: document.getElementById('summary-name'),
+            summaryScore: document.getElementById('summary-score'),
+            summaryAccuracy: document.getElementById('summary-accuracy'),
+            // Touch Controls
+            btnTouchInteract: document.getElementById('btn-touch-interact'),
+            btnTouchJump: document.getElementById('btn-touch-jump'),
+            joystickZone: document.getElementById('joystick-zone'),
+            joystickKnob: document.getElementById('joystick-knob')
+        };
+
+        // Initialize Settings URL input
+        ui.inputScriptUrl.value = state.googleScriptUrl;
+
+        // --- 3D ENGINE & SCENE SETUP ---
+        let scene, camera, renderer;
+        let playerGroup, playerBody, headMesh, hatMesh;
+        let clock = new THREE.Clock();
+
+        // Physics & Controls
+        const playerPos = new THREE.Vector3(0, 0, 10);
+        const playerVelocity = new THREE.Vector3();
         let isGrounded = true;
+        const gravity = -28;
+        const jumpSpeed = 10;
+        const moveSpeed = 8;
+        
+        const keysPressed = {};
+        const touchInput = { x: 0, y: 0 }; // Joystick vector
 
-        // Mouse Look & Orbit Camera parameters
-        let isPointerLocked = false;
-        let cameraYaw = 0;       // Horizontal camera angle (radians)
-        let cameraPitch = 0.3;   // Vertical camera angle (radians)
-        const cameraDistance = 9;
-        const minPitch = -0.1;   // Limit looking down
-        const maxPitch = 1.1;    // Limit looking up from above
+        // Interactive Objects in 3D Space
+        const interactables = [];
 
-        // Mobile touch look variables
-        let touchLookId = null;
-        let lastTouchX = 0, lastTouchY = 0;
-
-        window.onload = function() {
-            initEngine();
-            createEnvironment();
-            createPlayer();
-            createNPCs();
-            setupEventListeners();
-            animate();
-        };
-
-        function initEngine() {
+        function init3D() {
             const container = document.getElementById('canvas-container');
-            
-            // Scene
+
+            // Scene setup
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87ceeb); // Sky blue
-            scene.fog = new THREE.FogExp2(0x87ceeb, 0.025);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
 
-            // Camera
+            // Camera setup
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            // Renderer
+
+            // Renderer setup
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -417,453 +465,611 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
-            clock = new THREE.Clock();
-
-            // Lighting setup
+            // Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
-            sunLight.position.set(20, 40, 20);
+            const sunLight = new THREE.DirectionalLight(0xfff5d6, 0.9);
+            sunLight.position.set(30, 50, 20);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
             sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 100;
-            const d = 30;
+            sunLight.shadow.camera.far = 150;
+            const d = 40;
             sunLight.shadow.camera.left = -d;
             sunLight.shadow.camera.right = d;
             sunLight.shadow.camera.top = d;
             sunLight.shadow.camera.bottom = -d;
             scene.add(sunLight);
+
+            // Environment Creation
+            buildTownEnvironment();
+
+            // Detective Player Model
+            createDetectivePlayer();
+
+            // Create Interactive Quest NPCs/Objects
+            createQuestTargets();
+
+            // Window resize handler
+            window.addEventListener('resize', onWindowResize);
+
+            // Start Animation Loop
+            animate();
         }
 
-        /* --- WORLD CREATION --- */
-        function createEnvironment() {
-            // Ground Plane (Grass Town Square)
-            const groundGeo = new THREE.PlaneGeometry(80, 80);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.8 });
+        // --- ENVIRONMENT BUILDER ---
+        function buildTownEnvironment() {
+            // Ground Grass
+            const groundGeo = new THREE.PlaneGeometry(120, 120);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x55aa55, roughness: 0.8 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Cobblestone Pathways
-            const pathMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.9 });
-            const pathCenter = new THREE.Mesh(new THREE.RingGeometry(2, 18, 32), pathMat);
-            pathCenter.rotation.x = -Math.PI / 2;
-            pathCenter.position.y = 0.01;
-            pathCenter.receiveShadow = true;
-            scene.add(pathCenter);
+            // Cobblestone Central Path
+            const pathGeo = new THREE.PlaneGeometry(12, 100);
+            const pathMat = new THREE.MeshStandardMaterial({ color: 0xd2b48c, roughness: 0.9 });
+            const path = new THREE.Mesh(pathGeo, pathMat);
+            path.rotation.x = -Math.PI / 2;
+            path.position.y = 0.01;
+            path.receiveShadow = true;
+            scene.add(path);
 
-            // Center Fountain Base
-            const fountainGeo = new THREE.CylinderGeometry(3, 3.5, 1, 16);
-            const fountainMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-            const fountain = new THREE.Mesh(fountainGeo, fountainMat);
-            fountain.position.set(0, 0.5, 0);
-            fountain.castShadow = true;
-            fountain.receiveShadow = true;
-            scene.add(fountain);
+            // Cross Path
+            const pathCross = new THREE.Mesh(new THREE.PlaneGeometry(100, 12), pathMat);
+            pathCross.rotation.x = -Math.PI / 2;
+            pathCross.position.y = 0.01;
+            pathCross.receiveShadow = true;
+            scene.add(pathCross);
 
-            // Water inside fountain
-            const waterGeo = new THREE.CylinderGeometry(2.7, 2.7, 0.8, 16);
-            const waterMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.85 });
-            const water = new THREE.Mesh(waterGeo, waterMat);
-            water.position.set(0, 0.6, 0);
-            scene.add(water);
-
-            // Central Fountain Pillar
-            const pillarGeo = new THREE.CylinderGeometry(0.6, 0.8, 2.5, 12);
-            const pillar = new THREE.Mesh(pillarGeo, fountainMat);
-            pillar.position.set(0, 1.8, 0);
-            pillar.castShadow = true;
-            scene.add(pillar);
-
-            // Houses & Props Around Town
-            createHouse(-18, 0, -12, 0xef4444); // Red house
-            createHouse(18, 0, -14, 0x3b82f6);  // Blue house
-            createHouse(-16, 0, 14, 0xf59e0b);  // Yellow house
-
-            // Decorative Trees
-            const treePositions = [
-                [-8, -8], [8, -8], [-10, 8], [10, 8],
-                [-25, -25], [25, -25], [-25, 25], [25, 25],
-                [0, -28], [0, 28], [-28, 0], [28, 0]
+            // Decorative Buildings
+            const buildingColors = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x457b9d];
+            const buildingPositions = [
+                { x: -18, z: -15, w: 12, h: 14, d: 12, color: buildingColors[0] },
+                { x: 18, z: -15, w: 12, h: 16, d: 12, color: buildingColors[1] },
+                { x: -18, z: 15, w: 12, h: 12, d: 12, color: buildingColors[2] },
+                { x: 18, z: 15, w: 12, h: 18, d: 12, color: buildingColors[3] }
             ];
-            treePositions.forEach(pos => createTree(pos[0], pos[1]));
 
-            // Boundary Fences
-            createTownFences();
-        }
+            buildingPositions.forEach(b => {
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(b.w, b.h, b.d),
+                    new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.5 })
+                );
+                mesh.position.set(b.x, b.h / 2, b.z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                scene.add(mesh);
 
-        function createHouse(x, z, rot, wallColorHex) {
-            const group = new THREE.Group();
-            
-            // Walls
-            const wallGeo = new THREE.BoxGeometry(7, 5, 7);
-            const wallMat = new THREE.MeshStandardMaterial({ color: wallColorHex });
-            const walls = new THREE.Mesh(wallGeo, wallMat);
-            walls.position.y = 2.5;
-            walls.castShadow = true;
-            walls.receiveShadow = true;
-            group.add(walls);
+                // Roofs
+                const roof = new THREE.Mesh(
+                    new THREE.ConeGeometry(b.w * 0.8, 5, 4),
+                    new THREE.MeshStandardMaterial({ color: 0x8b0000 })
+                );
+                roof.position.set(b.x, b.h + 2.5, b.z);
+                roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
+                scene.add(roof);
+            });
 
-            // Roof
-            const roofGeo = new THREE.ConeGeometry(5.5, 3.5, 4);
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
-            const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.y = 6.75;
-            roof.rotation.y = Math.PI / 4;
-            roof.castShadow = true;
-            group.add(roof);
-
-            // Door
-            const doorGeo = new THREE.BoxGeometry(1.5, 2.5, 0.2);
-            const doorMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
-            const door = new THREE.Mesh(doorGeo, doorMat);
-            door.position.set(0, 1.25, 3.51);
-            group.add(door);
-
-            group.position.set(x, 0, z);
-            group.rotation.y = rot;
-            scene.add(group);
+            // Decorative Trees around the map
+            for (let i = 0; i < 24; i++) {
+                const angle = (i / 24) * Math.PI * 2;
+                const radius = 32 + Math.random() * 15;
+                const tx = Math.sin(angle) * radius;
+                const tz = Math.cos(angle) * radius;
+                createTree(tx, tz);
+            }
         }
 
         function createTree(x, z) {
-            const tree = new THREE.Group();
-            
-            // Trunk
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 2.5, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 1.25;
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.7, 4),
+                new THREE.MeshStandardMaterial({ color: 0x8b5a2b })
+            );
+            trunk.position.set(x, 2, z);
             trunk.castShadow = true;
-            tree.add(trunk);
+            scene.add(trunk);
 
-            // Foliage (Stacked Cones)
-            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
-            for (let i = 0; i < 3; i++) {
-                const foliageGeo = new THREE.ConeGeometry(2.2 - (i * 0.4), 2.5, 8);
-                const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-                foliage.position.y = 2.5 + (i * 1.3);
-                foliage.castShadow = true;
-                tree.add(foliage);
-            }
-
-            tree.position.set(x, 0, z);
-            scene.add(tree);
+            const leaves = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(2.5),
+                new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.6 })
+            );
+            leaves.position.set(x, 4.5, z);
+            leaves.castShadow = true;
+            scene.add(leaves);
         }
 
-        function createTownFences() {
-            const fenceMat = new THREE.MeshStandardMaterial({ color: 0xd97706 });
-            const size = 38;
-            
-            for (let i = -size; i <= size; i += 4) {
-                // Outer perimeter markers
-                if (Math.abs(i) % 8 === 0) {
-                    const postGeo = new THREE.BoxGeometry(0.4, 2, 0.4);
-                    const post1 = new THREE.Mesh(postGeo, fenceMat);
-                    post1.position.set(i, 1, -size);
-                    scene.add(post1);
+        // --- DETECTIVE PLAYER CREATION ---
+        function createDetectivePlayer() {
+            playerGroup = new THREE.Group();
 
-                    const post2 = new THREE.Mesh(postGeo, fenceMat);
-                    post2.position.set(i, 1, size);
-                    scene.add(post2);
-                }
-            }
-        }
-
-        /* --- CHARACTER CREATION --- */
-        function createPlayer() {
-            playerMesh = new THREE.Group();
-
-            // Body (Detective Trench Coat style)
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.6, 1.4, 12);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706 }); // Amber Coat
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.1;
-            body.castShadow = true;
-            playerMesh.add(body);
+            // Detective Body (Trench coat)
+            const coatGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.4, 8);
+            const coatMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b }); // Brown trench coat
+            playerBody = new THREE.Mesh(coatGeo, coatMat);
+            playerBody.position.y = 0.9;
+            playerBody.castShadow = true;
+            playerGroup.add(playerBody);
 
             // Head
             const headGeo = new THREE.SphereGeometry(0.4, 16, 16);
             const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 2.1;
-            head.castShadow = true;
-            playerMesh.add(head);
+            headMesh = new THREE.Mesh(headGeo, headMat);
+            headMesh.position.y = 1.8;
+            headMesh.castShadow = true;
+            playerGroup.add(headMesh);
 
-            // Detective Hat Rim
-            const hatRimGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.05, 16);
-            const hatMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
-            const hatRim = new THREE.Mesh(hatRimGeo, hatMat);
-            hatRim.position.y = 2.4;
-            hatRim.castShadow = true;
-            playerMesh.add(hatRim);
+            // Detective Fedora Hat
+            const hatBrimGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.05, 16);
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0x3a2411 });
+            const brim = new THREE.Mesh(hatBrimGeo, hatMat);
+            brim.position.y = 2.05;
+            playerGroup.add(brim);
 
-            // Detective Hat Top
             const hatTopGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.5, 16);
-            const hatTop = new THREE.Mesh(hatTopGeo, hatMat);
-            hatTop.position.y = 2.65;
-            hatTop.castShadow = true;
-            playerMesh.add(hatTop);
+            hatMesh = new THREE.Mesh(hatTopGeo, hatMat);
+            hatMesh.position.y = 2.3;
+            playerGroup.add(hatMesh);
 
-            // Legs
-            const legGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 8);
-            const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
-            
-            const leftLeg = new THREE.Mesh(legGeo, legMat);
-            leftLeg.position.set(-0.25, 0.4, 0);
-            leftLeg.castShadow = true;
-            playerMesh.add(leftLeg);
+            // Magnifying Glass Prop in Hand
+            const glassRing = new THREE.Mesh(
+                new THREE.TorusGeometry(0.18, 0.03, 8, 16),
+                new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 })
+            );
+            glassRing.position.set(0.6, 1.2, 0.3);
+            glassRing.rotation.y = Math.PI / 4;
+            playerGroup.add(glassRing);
 
-            const rightLeg = new THREE.Mesh(legGeo, legMat);
-            rightLeg.position.set(0.25, 0.4, 0);
-            rightLeg.castShadow = true;
-            playerMesh.add(rightLeg);
+            const glassHandle = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.03, 0.3),
+                new THREE.MeshStandardMaterial({ color: 0x4a2e18 })
+            );
+            glassHandle.position.set(0.6, 1.0, 0.3);
+            playerGroup.add(glassHandle);
 
-            // Initial Spawn Position
-            playerMesh.position.set(0, 0, 10);
-            scene.add(playerMesh);
+            playerGroup.position.copy(playerPos);
+            scene.add(playerGroup);
         }
 
-        /* --- NPC & QUEST CREATION --- */
-        function createNPCs() {
-            QUEST_DATA.forEach(data => {
+        // --- QUEST TARGETS CREATION (NPCs & Objects) ---
+        function createQuestTargets() {
+            const positions = [
+                { x: 0, z: -10 },   // Mayor Owl
+                { x: -12, z: -2 },  // Chef Bear
+                { x: 12, z: 2 },    // Robo-Helper
+                { x: 0, z: -25 },   // Clock Tower
+                { x: 15, z: -20 }   // Sly Fox
+            ];
+
+            QUEST_DATA.forEach((q, idx) => {
+                const pos = positions[idx];
                 const group = new THREE.Group();
+                group.position.set(pos.x, 0, pos.z);
 
-                if (data.id === 'mysterious_chest') {
-                    // Create Chest Visual
-                    const chestGeo = new THREE.BoxGeometry(1.2, 0.9, 0.9);
-                    const chestMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.4 });
-                    const chest = new THREE.Mesh(chestGeo, chestMat);
-                    chest.position.y = 0.45;
-                    chest.castShadow = true;
-                    group.add(chest);
-
-                    // Golden Lock Trim
-                    const lockGeo = new THREE.BoxGeometry(0.2, 0.3, 0.1);
-                    const lockMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8 });
-                    const lock = new THREE.Mesh(lockGeo, lockMat);
-                    lock.position.set(0, 0.45, 0.46);
-                    group.add(lock);
-                } else if (data.id === 'magical_owl') {
-                    // Create Wise Creature (Owl visual)
-                    const owlBodyGeo = new THREE.SphereGeometry(0.6, 12, 12);
-                    const owlMat = new THREE.MeshStandardMaterial({ color: 0x6b21a8 });
-                    const owlBody = new THREE.Mesh(owlBodyGeo, owlMat);
-                    owlBody.position.y = 1.2;
-                    owlBody.castShadow = true;
-                    group.add(owlBody);
-
-                    // Eyes
-                    const eyeGeo = new THREE.SphereGeometry(0.15, 8, 8);
-                    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-                    const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
-                    eye1.position.set(-0.2, 1.3, 0.5);
-                    const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
-                    eye2.position.set(0.2, 1.3, 0.5);
-                    group.add(eye1);
-                    group.add(eye2);
-                } else {
-                    // Humanoid NPC Visual
-                    const bodyGeo = new THREE.CylinderGeometry(0.45, 0.5, 1.3, 12);
-                    const bodyMat = new THREE.MeshStandardMaterial({ 
-                        color: data.id === 'officer_sam' ? 0x2563eb : (data.id === 'baker_lucy' ? 0xf97316 : 0x7c3aed)
-                    });
-                    const body = new THREE.Mesh(bodyGeo, bodyMat);
-                    body.position.y = 1.05;
-                    body.castShadow = true;
-                    group.add(body);
-
-                    const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
-                    const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-                    const head = new THREE.Mesh(headGeo, headMat);
-                    head.position.y = 2.0;
-                    head.castShadow = true;
-                    group.add(head);
-                }
-
-                // Interactive Indicator Aura Ring underneath
+                // NPC Base visual indicator / aura ring
                 const ringGeo = new THREE.RingGeometry(1.2, 1.5, 32);
-                const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
-                const auraRing = new THREE.Mesh(ringGeo, ringMat);
-                auraRing.rotation.x = -Math.PI / 2;
-                auraRing.position.y = 0.02;
-                group.add(auraRing);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = 0.05;
+                group.add(ring);
 
-                group.position.set(data.position.x, 0, data.position.z);
+                // Distinct NPC Visuals
+                let mesh;
+                if (q.id === 'npc_owl') {
+                    mesh = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), new THREE.MeshStandardMaterial({ color: 0x795548 }));
+                    mesh.position.y = 1.2;
+                } else if (q.id === 'npc_bear') {
+                    mesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 1.2), new THREE.MeshStandardMaterial({ color: 0xa1887f }));
+                    mesh.position.y = 1.0;
+                } else if (q.id === 'npc_robot') {
+                    mesh = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 1.0), new THREE.MeshStandardMaterial({ color: 0x90a4ae, metalness: 0.8 }));
+                    mesh.position.y = 1.0;
+                } else if (q.id === 'obj_clock') {
+                    mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 5, 8), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.5 }));
+                    mesh.position.y = 2.5;
+                } else { // Sly Fox
+                    mesh = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.6, 6), new THREE.MeshStandardMaterial({ color: 0xe65100 }));
+                    mesh.position.y = 1.0;
+                }
+                mesh.castShadow = true;
+                group.add(mesh);
+
+                // Floating Exclamation Icon Above Head
+                const iconGeo = new THREE.SphereGeometry(0.25, 8, 8);
+                const iconMat = new THREE.MeshBasicMaterial({ color: 0xff3d00 });
+                const icon = new THREE.Mesh(iconGeo, iconMat);
+                icon.position.y = (q.id === 'obj_clock') ? 5.8 : 2.5;
+                group.add(icon);
+
                 scene.add(group);
 
-                // Store reference
-                npcMeshes.push({
-                    data: data,
-                    mesh: group,
-                    aura: auraRing
+                interactables.push({
+                    data: q,
+                    position: group.position,
+                    group: group,
+                    icon: icon,
+                    solved: false
                 });
             });
         }
 
-        /* --- CONTROLS & EVENT LISTENERS --- */
-        function setupEventListeners() {
-            // Pointer Lock Setup for Mouse Look
-            const canvasContainer = document.getElementById('canvas-container');
-            const hintBox = document.getElementById('mouse-lock-hint');
+        // --- CONTROLS LISTENERS ---
+        window.addEventListener('keydown', (e) => {
+            keysPressed[e.code] = true;
+            if (e.code === 'KeyE' || e.code === 'Space') {
+                triggerInteraction();
+            }
+        });
 
-            canvasContainer.addEventListener('click', () => {
-                // Request pointer lock only on non-dialogue/non-notebook screens
-                const dialogueHidden = document.getElementById('dialogue-modal').classList.contains('hidden');
-                const notebookHidden = document.getElementById('notebook-modal').classList.contains('hidden');
-                if (dialogueHidden && notebookHidden) {
-                    canvasContainer.requestPointerLock();
-                }
-            });
+        window.addEventListener('keyup', (e) => {
+            keysPressed[e.code] = false;
+        });
 
-            document.addEventListener('pointerlockchange', () => {
-                if (document.pointerLockElement === canvasContainer) {
-                    isPointerLocked = true;
-                    if (hintBox) hintBox.style.opacity = '0';
-                } else {
-                    isPointerLocked = false;
-                    if (hintBox) hintBox.style.opacity = '1';
-                }
-            });
-
-            // Mouse Movement Listener for Camera Rotation
-            document.addEventListener('mousemove', (e) => {
-                if (isPointerLocked) {
-                    const mouseSensitivity = 0.0025;
-                    cameraYaw -= e.movementX * mouseSensitivity;
-                    cameraPitch += e.movementY * mouseSensitivity;
-
-                    // Clamp pitch so camera doesn't flip or clip underground
-                    cameraPitch = THREE.MathUtils.clamp(cameraPitch, minPitch, maxPitch);
-                }
-            });
-
-            // Keyboard Keydown & Keyup
-            window.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
-                if (e.code === 'KeyE') {
-                    triggerCurrentInteraction();
-                }
-            });
-
-            window.addEventListener('keyup', (e) => {
-                keys[e.code] = false;
-            });
-
-            // Window Resize
-            window.addEventListener('resize', onWindowResize);
-
-            // Touch Screen Mobile Controls & Mobile Look Dragging
-            setupMobileControls();
-        }
-
-        function setupMobileControls() {
-            const joystickZone = document.getElementById('joystick-zone');
-            const joystickKnob = document.getElementById('joystick-knob');
-            const jumpBtn = document.getElementById('mobile-jump-btn');
-            const interactBtn = document.getElementById('mobile-interact-btn');
-
-            let joystickTouchId = null;
+        // Touch Joystick Controls Setup
+        function setupTouchControls() {
+            let joystickActive = false;
             let startX = 0, startY = 0;
 
-            joystickZone.addEventListener('touchstart', (e) => {
-                const touch = e.changedTouches[0];
-                joystickTouchId = touch.identifier;
-                startX = touch.clientX;
-                startY = touch.clientY;
-            });
-
-            joystickZone.addEventListener('touchmove', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === joystickTouchId) {
-                        const touch = e.changedTouches[i];
-                        const dx = touch.clientX - startX;
-                        const dy = touch.clientY - startY;
-                        const dist = Math.min(Math.hypot(dx, dy), 40);
-                        const angle = Math.atan2(dy, dx);
-
-                        const knobX = Math.cos(angle) * dist;
-                        const knobY = Math.sin(angle) * dist;
-                        joystickKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-
-                        // Virtual keys
-                        keys['KeyW'] = dy < -10;
-                        keys['KeyS'] = dy > 10;
-                        keys['KeyA'] = dx < -10;
-                        keys['KeyD'] = dx > 10;
-                    }
-                }
-            });
-
-            const resetJoystick = () => {
-                joystickTouchId = null;
-                joystickKnob.style.transform = `translate(0px, 0px)`;
-                keys['KeyW'] = false;
-                keys['KeyS'] = false;
-                keys['KeyA'] = false;
-                keys['KeyD'] = false;
+            const handleTouchStart = (e) => {
+                joystickActive = true;
+                const touch = e.touches[0];
+                const rect = ui.joystickZone.getBoundingClientRect();
+                startX = rect.left + rect.width / 2;
+                startY = rect.top + rect.height / 2;
+                updateJoystick(touch.clientX, touch.clientY);
             };
 
-            joystickZone.addEventListener('touchend', resetJoystick);
-            joystickZone.addEventListener('touchcancel', resetJoystick);
-
-            // Mobile Touch Screen Drag to Look Around (right side of screen)
-            window.addEventListener('touchstart', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const t = e.changedTouches[i];
-                    // If touch is on the right half of the screen and not touching joystick/buttons
-                    if (t.clientX > window.innerWidth / 2 && touchLookId === null) {
-                        touchLookId = t.identifier;
-                        lastTouchX = t.clientX;
-                        lastTouchY = t.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchmove', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const t = e.changedTouches[i];
-                    if (t.identifier === touchLookId) {
-                        const dx = t.clientX - lastTouchX;
-                        const dy = t.clientY - lastTouchY;
-                        lastTouchX = t.clientX;
-                        lastTouchY = t.clientY;
-
-                        const touchSensitivity = 0.005;
-                        cameraYaw -= dx * touchSensitivity;
-                        cameraPitch += dy * touchSensitivity;
-                        cameraPitch = THREE.MathUtils.clamp(cameraPitch, minPitch, maxPitch);
-                    }
-                }
-            });
-
-            const resetTouchLook = (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === touchLookId) {
-                        touchLookId = null;
-                    }
-                }
+            const handleTouchMove = (e) => {
+                if (!joystickActive) return;
+                const touch = e.touches[0];
+                updateJoystick(touch.clientX, touch.clientY);
             };
-            window.addEventListener('touchend', resetTouchLook);
-            window.addEventListener('touchcancel', resetTouchLook);
 
-            // Jump & Interact Buttons
-            jumpBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                keys['Space'] = true;
-            });
-            jumpBtn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                keys['Space'] = false;
-            });
+            const handleTouchEnd = () => {
+                joystickActive = false;
+                touchInput.x = 0;
+                touchInput.y = 0;
+                ui.joystickKnob.style.transform = `translate(0px, 0px)`;
+            };
 
-            interactBtn.addEventListener('click', () => {
-                triggerCurrentInteraction();
+            function updateJoystick(clientX, clientY) {
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                const dist = Math.min(Math.hypot(dx, dy), 50);
+                const angle = Math.atan2(dy, dx);
+
+                const maxKnobX = Math.cos(angle) * dist;
+                const maxKnobY = Math.sin(angle) * dist;
+
+                ui.joystickKnob.style.transform = `translate(${maxKnobX}px, ${maxKnobY}px)`;
+                
+                touchInput.x = maxKnobX / 50;
+                touchInput.y = maxKnobY / 50;
+            }
+
+            ui.joystickZone.addEventListener('touchstart', handleTouchStart);
+            ui.joystickZone.addEventListener('touchmove', handleTouchMove);
+            ui.joystickZone.addEventListener('touchend', handleTouchEnd);
+
+            ui.btnTouchJump.addEventListener('click', () => {
+                if (isGrounded) playerVelocity.y = jumpSpeed;
             });
+            ui.btnTouchInteract.addEventListener('click', triggerInteraction);
         }
+
+        // --- ANIMATION & PHYSICS LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            if (!state.gameCompleted && ui.modalDialogue.classList.contains('hidden')) {
+                updatePlayerMovement(delta);
+            }
+
+            // Animate floating target icons
+            const time = clock.getElapsedTime();
+            interactables.forEach(item => {
+                if (!item.solved) {
+                    item.icon.position.y += Math.sin(time * 4) * 0.003;
+                }
+            });
+
+            // Camera follow (Third-person smooth tracking)
+            const targetCamPos = new THREE.Vector3(
+                playerGroup.position.x,
+                playerGroup.position.y + 7,
+                playerGroup.position.z + 12
+            );
+            camera.position.lerp(targetCamPos, 0.1);
+            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.5, playerGroup.position.z);
+
+            // Check Proximity to Interactables
+            checkProximity();
+
+            renderer.render(scene, camera);
+        }
+
+        function updatePlayerMovement(delta) {
+            // Horizontal Direction Vectors
+            let moveX = 0;
+            let moveZ = 0;
+
+            if (keysPressed['KeyW'] || keysPressed['ArrowUp']) moveZ -= 1;
+            if (keysPressed['KeyS'] || keysPressed['ArrowDown']) moveZ += 1;
+            if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) moveX -= 1;
+            if (keysPressed['KeyD'] || keysPressed['ArrowRight']) moveX += 1;
+
+            // Combine keyboard and touch input
+            moveX += touchInput.x;
+            moveZ += touchInput.y;
+
+            const inputLength = Math.hypot(moveX, moveZ);
+
+            if (inputLength > 0.1) {
+                const normX = moveX / Math.max(1, inputLength);
+                const normZ = moveZ / Math.max(1, inputLength);
+
+                playerGroup.position.x += normX * moveSpeed * delta;
+                playerGroup.position.z += normZ * moveSpeed * delta;
+
+                // Rotate player towards movement direction
+                const targetAngle = Math.atan2(normX, normZ);
+                playerGroup.rotation.y = targetAngle;
+
+                // Subtle walking bounce animation
+                playerBody.position.y = 0.9 + Math.sin(clock.getElapsedTime() * 12) * 0.08;
+            } else {
+                playerBody.position.y = 0.9;
+            }
+
+            // Jump Gravity Physics
+            if (keysPressed['Space'] && isGrounded) {
+                playerVelocity.y = jumpSpeed;
+                isGrounded = false;
+            }
+
+            playerVelocity.y += gravity * delta;
+            playerGroup.position.y += playerVelocity.y * delta;
+
+            if (playerGroup.position.y <= 0) {
+                playerGroup.position.y = 0;
+                playerVelocity.y = 0;
+                isGrounded = true;
+            }
+
+            // Map Bounds Boundaries
+            playerGroup.position.x = Math.max(-45, Math.min(45, playerGroup.position.x));
+            playerGroup.position.z = Math.max(-45, Math.min(45, playerGroup.position.z));
+        }
+
+        // --- PROXIMITY INTERACTION SYSTEM ---
+        function checkProximity() {
+            let found = null;
+            interactables.forEach(item => {
+                if (item.solved) return;
+                const dist = playerGroup.position.distanceTo(item.position);
+                if (dist < 3.5) {
+                    found = item;
+                }
+            });
+
+            state.interactableInRange = found;
+
+            if (found && ui.modalDialogue.classList.contains('hidden')) {
+                ui.promptText.textContent = `Talk to ${found.data.name}`;
+                ui.prompt.classList.remove('opacity-0', 'translate-y-4');
+                ui.prompt.classList.add('opacity-100', 'translate-y-0');
+            } else {
+                ui.prompt.classList.remove('opacity-100', 'translate-y-0');
+                ui.prompt.classList.add('opacity-0', 'translate-y-4');
+            }
+        }
+
+        function triggerInteraction() {
+            if (state.interactableInRange && ui.modalDialogue.classList.contains('hidden')) {
+                openDialogue(state.interactableInRange);
+            }
+        }
+
+        // --- DIALOGUE & QUESTION MODAL LOGIC ---
+        function openDialogue(target) {
+            state.activeQuest = target;
+            const q = target.data;
+
+            ui.npcAvatar.textContent = q.avatar;
+            ui.npcName.textContent = q.name;
+            ui.npcRole.textContent = q.role;
+            ui.dialogueText.textContent = q.dialogue;
+            ui.questionCategory.textContent = q.category;
+            ui.questionText.textContent = q.question;
+            ui.feedbackArea.classList.add('hidden');
+
+            // Render Options
+            ui.optionsGrid.innerHTML = '';
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50 font-bold text-slate-800 transition transform hover:-translate-y-0.5 active:translate-y-0 text-base flex items-center justify-between';
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <span class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-black">${String.fromCharCode(65 + idx)}</span>
+                `;
+                btn.addEventListener('click', () => handleAnswer(idx));
+                ui.optionsGrid.appendChild(btn);
+            });
+
+            ui.modalDialogue.classList.remove('hidden');
+        }
+
+        function handleAnswer(selectedIndex) {
+            const q = state.activeQuest.data;
+            const buttons = ui.optionsGrid.querySelectorAll('button');
+            
+            // Disable buttons to prevent double click
+            buttons.forEach(b => b.disabled = true);
+
+            state.totalAnswered++;
+
+            if (selectedIndex === q.correct) {
+                // Correct Answer
+                state.score += 100;
+                state.cluesFound++;
+                state.correctAnswers++;
+                state.activeQuest.solved = true;
+
+                // Hide exclamation mark in 3D
+                state.activeQuest.icon.visible = false;
+                state.activeQuest.group.children[0].material.color.setHex(0x10b981); // Green ring
+
+                buttons[selectedIndex].classList.remove('border-slate-200', 'bg-slate-50');
+                buttons[selectedIndex].classList.add('border-emerald-500', 'bg-emerald-100', 'text-emerald-900');
+
+                ui.feedbackArea.className = "mt-4 p-4 rounded-xl text-center font-bold text-base bg-emerald-100 text-emerald-800 border-2 border-emerald-300";
+                ui.feedbackArea.innerHTML = `✅ <strong>CORRECT!</strong><br><span class="text-sm font-normal">${q.clue}</span>`;
+                ui.feedbackArea.classList.remove('hidden');
+
+                updateHUD();
+
+                setTimeout(() => {
+                    ui.modalDialogue.classList.add('hidden');
+                    if (state.cluesFound >= QUEST_DATA.length) {
+                        endGame();
+                    }
+                }, 2200);
+
+            } else {
+                // Wrong Answer
+                buttons[selectedIndex].classList.remove('border-slate-200', 'bg-slate-50');
+                buttons[selectedIndex].classList.add('border-rose-500', 'bg-rose-100', 'text-rose-900');
+
+                buttons[q.correct].classList.add('border-emerald-500', 'bg-emerald-50');
+
+                ui.feedbackArea.className = "mt-4 p-4 rounded-xl text-center font-bold text-base bg-rose-100 text-rose-800 border-2 border-rose-300";
+                ui.feedbackArea.innerHTML = `❌ <strong>Not quite right!</strong><br><span class="text-xs font-normal">Try reviewing the clue and attempt again.</span>`;
+                ui.feedbackArea.classList.remove('hidden');
+
+                setTimeout(() => {
+                    // Re-enable for retrying
+                    buttons.forEach(b => b.disabled = false);
+                    ui.feedbackArea.classList.add('hidden');
+                }, 1800);
+            }
+        }
+
+        function updateHUD() {
+            ui.displayScore.textContent = `${state.score} / ${QUEST_DATA.length * 100}`;
+            ui.displayClues.textContent = `${state.cluesFound} / ${QUEST_DATA.length}`;
+        }
+
+        // --- END GAME & GOOGLE SHEET SUBMISSION ---
+        function endGame() {
+            state.gameCompleted = true;
+            const timeTakenSec = Math.round((Date.now() - state.startTime) / 1000);
+            const accuracy = Math.round((state.correctAnswers / state.totalAnswered) * 100);
+
+            ui.summaryName.textContent = state.studentName;
+            ui.summaryScore.textContent = state.score;
+            ui.summaryAccuracy.textContent = `${accuracy}%`;
+
+            ui.modalSummary.classList.remove('hidden');
+        }
+
+        async function submitToGoogleSheet() {
+            if (!state.googleScriptUrl) {
+                ui.sheetStatusBox.className = "mb-4 p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm font-bold";
+                ui.sheetStatusBox.innerHTML = `⚠️ No Google Apps Script URL set! Click the gear icon (<i class="fa-solid fa-gear"></i>) in HUD to set your Web App URL.`;
+                ui.sheetStatusBox.classList.remove('hidden');
+                return;
+            }
+
+            const timeTakenSec = Math.round((Date.now() - state.startTime) / 1000);
+            const accuracy = Math.round((state.correctAnswers / state.totalAnswered) * 100);
+
+            const payload = {
+                studentName: state.studentName,
+                studentClass: state.studentClass,
+                score: state.score,
+                cluesFound: state.cluesFound,
+                accuracy: accuracy,
+                timeTaken: timeTakenSec
+            };
+
+            ui.btnSubmitSheet.disabled = true;
+            ui.btnSubmitSheet.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...`;
+
+            try {
+                // Fetch with no-cors standard for Apps Script Web App redirects
+                await fetch(state.googleScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                ui.sheetStatusBox.className = "mb-4 p-4 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-sm font-bold";
+                ui.sheetStatusBox.innerHTML = `🎉 <strong>Result Submitted!</strong> Your scores have been saved to the teacher's Google Sheet.`;
+                ui.sheetStatusBox.classList.remove('hidden');
+            } catch (err) {
+                ui.sheetStatusBox.className = "mb-4 p-4 rounded-xl border border-rose-300 bg-rose-50 text-rose-800 text-sm font-bold";
+                ui.sheetStatusBox.innerHTML = `❌ Error sending data: ${err.message}. Please verify your Apps Script URL setup.`;
+                ui.sheetStatusBox.classList.remove('hidden');
+            } finally {
+                ui.btnSubmitSheet.disabled = false;
+                ui.btnSubmitSheet.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xl"></i> RECORD TO GOOGLE SHEET`;
+            }
+        }
+
+        // --- EVENT LISTENERS FOR MODALS ---
+        ui.formStart.addEventListener('submit', (e) => {
+            e.preventDefault();
+            state.studentName = ui.inputName.value.trim();
+            state.studentClass = ui.inputClass.value.trim();
+            ui.displayName.textContent = state.studentName;
+            
+            state.startTime = Date.now();
+            ui.modalStart.classList.add('hidden');
+        });
+
+        ui.btnCloseDialogue.addEventListener('click', () => {
+            ui.modalDialogue.classList.add('hidden');
+        });
+
+        ui.btnOpenSettings.addEventListener('click', () => {
+            ui.modalSettings.classList.remove('hidden');
+        });
+
+        ui.btnCloseSettings.addEventListener('click', () => {
+            ui.modalSettings.classList.add('hidden');
+        });
+
+        ui.btnSaveSettings.addEventListener('click', () => {
+            state.googleScriptUrl = ui.inputScriptUrl.value.trim();
+            localStorage.setItem('esl_detective_script_url', state.googleScriptUrl);
+            ui.modalSettings.classList.add('hidden');
+        });
+
+        ui.btnSubmitSheet.addEventListener('click', submitToGoogleSheet);
+
+        ui.btnShowCode.addEventListener('click', () => {
+            ui.codeBox.classList.toggle('hidden');
+        });
+
+        ui.btnCopyCode.addEventListener('click', () => {
+            const codeText = ui.codeBox.querySelector('pre').textContent;
+            navigator.clipboard.writeText(codeText).then(() => {
+                ui.btnCopyCode.textContent = 'Copied!';
+                setTimeout(() => ui.btnCopyCode.textContent = 'Copy', 2000);
+            });
+        });
+
+        ui.btnRestart.addEventListener('click', () => {
+            window.location.reload();
+        });
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -871,253 +1077,11 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        /* --- MAIN ANIMATION & GAME LOOP --- */
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const delta = clock.getDelta();
-
-            updatePlayerMovement(delta);
-            updateCamera();
-            checkProximity();
-            animateWorldElements();
-
-            renderer.render(scene, camera);
-        }
-
-        function updatePlayerMovement(delta) {
-            // Movement Vector relative to camera direction
-            let inputForward = 0;
-            let inputRight = 0;
-
-            if (keys['KeyW'] || keys['ArrowUp']) inputForward += 1;
-            if (keys['KeyS'] || keys['ArrowDown']) inputForward -= 1;
-            if (keys['KeyA'] || keys['ArrowLeft']) inputRight -= 1;
-            if (keys['KeyD'] || keys['ArrowRight']) inputRight += 1;
-
-            if (inputForward !== 0 || inputRight !== 0) {
-                // Calculate movement vector relative to camera Yaw angle
-                const forwardVector = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw)).normalize();
-                const rightVector = new THREE.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw)).normalize();
-
-                const moveDirection = new THREE.Vector3()
-                    .addScaledVector(forwardVector, inputForward)
-                    .addScaledVector(rightVector, inputRight)
-                    .normalize();
-
-                // Rotate player mesh smoothly to face the movement direction
-                const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
-                playerMesh.rotation.y = THREE.MathUtils.lerp(playerMesh.rotation.y, targetAngle, 0.2);
-
-                // Apply world position step
-                playerMesh.position.x += moveDirection.x * playerSpeed * delta;
-                playerMesh.position.z += moveDirection.z * playerSpeed * delta;
-            }
-
-            // Jump & Gravity Physics
-            if (keys['Space'] && isGrounded) {
-                playerVelocity.y = jumpForce;
-                isGrounded = false;
-            }
-
-            // Apply Gravity
-            playerVelocity.y += gravity * delta;
-            playerMesh.position.y += playerVelocity.y * delta;
-
-            // Ground Collision
-            if (playerMesh.position.y <= 0) {
-                playerMesh.position.y = 0;
-                playerVelocity.y = 0;
-                isGrounded = true;
-            }
-
-            // Map Bounds Constraints (-36 to +36)
-            playerMesh.position.x = THREE.MathUtils.clamp(playerMesh.position.x, -36, 36);
-            playerMesh.position.z = THREE.MathUtils.clamp(playerMesh.position.z, -36, 36);
-        }
-
-        function updateCamera() {
-            // Calculate 3D spherical camera position relative to the player
-            const targetHeadPos = playerMesh.position.clone().add(new THREE.Vector3(0, 1.8, 0));
-
-            const cx = cameraDistance * Math.sin(cameraYaw) * Math.cos(cameraPitch);
-            const cy = cameraDistance * Math.sin(cameraPitch);
-            const cz = cameraDistance * Math.cos(cameraYaw) * Math.cos(cameraPitch);
-
-            const desiredCameraPos = new THREE.Vector3(
-                targetHeadPos.x + cx,
-                targetHeadPos.y + cy,
-                targetHeadPos.z + cz
-            );
-
-            // Smoothly move camera to target position
-            camera.position.lerp(desiredCameraPos, 0.15);
-            camera.lookAt(targetHeadPos);
-        }
-
-        function animateWorldElements() {
-            // Rotate rings & slight float for NPCs
-            const time = clock.getElapsedTime();
-            npcMeshes.forEach(item => {
-                item.aura.rotation.z = time * 0.8;
-                if (!gameState.completedQuests.has(item.data.id)) {
-                    item.mesh.position.y = Math.sin(time * 3 + item.data.position.x) * 0.08;
-                }
-            });
-        }
-
-        /* --- PROXIMITY & INTERACTION CHECK --- */
-        function checkProximity() {
-            let closestNPC = null;
-            let minDistance = 3.5; // Trigger distance
-
-            npcMeshes.forEach(item => {
-                const dist = playerMesh.position.distanceTo(item.mesh.position);
-                if (dist < minDistance) {
-                    closestNPC = item.data;
-                }
-            });
-
-            const promptEl = document.getElementById('interaction-prompt');
-            const promptText = document.getElementById('prompt-action-text');
-
-            if (closestNPC && !gameState.completedQuests.has(closestNPC.id)) {
-                gameState.activeQuest = closestNPC;
-                promptText.innerText = closestNPC.badgeText;
-                promptEl.classList.remove('opacity-0', 'translate-y-4');
-                promptEl.classList.add('opacity-100', 'translate-y-0');
-            } else {
-                gameState.activeQuest = null;
-                promptEl.classList.remove('opacity-100', 'translate-y-0');
-                promptEl.classList.add('opacity-0', 'translate-y-4');
-            }
-        }
-
-        function triggerCurrentInteraction() {
-            if (gameState.activeQuest) {
-                openDialogue(gameState.activeQuest);
-            }
-        }
-
-        /* --- DIALOGUE & QUESTION MODAL SYSTEM --- */
-        function openDialogue(quest) {
-            // Exit pointer lock when dialogue pops up
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-
-            const modal = document.getElementById('dialogue-modal');
-            const avatarBg = document.getElementById('npc-avatar-bg');
-            const avatarIcon = document.getElementById('npc-avatar-icon');
-            const npcName = document.getElementById('npc-name');
-            const npcRole = document.getElementById('npc-role');
-            const speechBox = document.getElementById('speech-box');
-            const optionsContainer = document.getElementById('options-container');
-            const feedbackBox = document.getElementById('feedback-box');
-
-            feedbackBox.classList.add('hidden');
-            
-            // Set Header
-            npcName.innerText = quest.name;
-            npcRole.innerText = quest.role;
-            avatarIcon.className = `fa-solid ${quest.avatar}`;
-            avatarBg.className = `w-16 h-16 rounded-2xl flex items-center justify-center text-3xl text-slate-900 shadow-md ${quest.avatarBg}`;
-
-            // Speech Text & Question
-            speechBox.innerHTML = `<p class="mb-2 italic text-amber-300">"${quest.speech}"</p><p class="font-bold text-white text-base md:text-lg">${quest.question}</p>`;
-
-            // Render Options
-            optionsContainer.innerHTML = '';
-            quest.options.forEach((optText, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left bg-slate-800 hover:bg-slate-700 active:scale-98 text-slate-100 font-semibold p-3.5 rounded-xl border border-slate-700 transition-all flex items-center justify-between group";
-                btn.innerHTML = `
-                    <span><strong class="text-amber-400 mr-2">${String.fromCharCode(65 + idx)}.</strong> ${optText}</span>
-                    <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-amber-400 transition-colors"></i>
-                `;
-                btn.onclick = () => submitAnswer(idx, quest);
-                optionsContainer.appendChild(btn);
-            });
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeDialogue() {
-            document.getElementById('dialogue-modal').classList.add('hidden');
-        }
-
-        function submitAnswer(selectedIndex, quest) {
-            const feedbackBox = document.getElementById('feedback-box');
-            const feedbackIcon = document.getElementById('feedback-icon');
-            const feedbackText = document.getElementById('feedback-text');
-
-            if (selectedIndex === quest.correct) {
-                // Correct Answer!
-                feedbackBox.className = "mt-4 p-3 rounded-xl font-medium text-sm flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-                feedbackIcon.className = "fa-solid fa-circle-check text-emerald-400";
-                feedbackText.innerText = "Awesome job Detective! That's correct!";
-                feedbackBox.classList.remove('hidden');
-
-                if (!gameState.completedQuests.has(quest.id)) {
-                    gameState.completedQuests.add(quest.id);
-                    gameState.stars += 1;
-                    gameState.score += 100;
-                    updateUI();
-                    addNotebookClue(quest);
-                }
-
-                setTimeout(() => {
-                    closeDialogue();
-                    if (gameState.stars >= QUEST_DATA.length) {
-                        triggerVictory();
-                    }
-                }, 1400);
-
-            } else {
-                // Wrong Answer!
-                feedbackBox.className = "mt-4 p-3 rounded-xl font-medium text-sm flex items-center gap-2 bg-rose-500/20 text-rose-300 border border-rose-500/40";
-                feedbackIcon.className = "fa-solid fa-circle-xmark text-rose-400";
-                feedbackText.innerText = "Not quite! Try reading the prompt carefully and try again.";
-                feedbackBox.classList.remove('hidden');
-            }
-        }
-
-        /* --- NOTEBOOK & PROGRESS SYSTEM --- */
-        function updateUI() {
-            document.getElementById('star-count').innerText = `${gameState.stars} / ${QUEST_DATA.length}`;
-            document.getElementById('score-text').innerText = `${gameState.score} PTS`;
-            document.getElementById('notebook-completion').innerText = `${gameState.completedQuests.size} / ${QUEST_DATA.length} Quests Completed`;
-        }
-
-        function addNotebookClue(quest) {
-            const cluesList = document.getElementById('clues-list');
-            const clueItem = document.createElement('div');
-            clueItem.className = "bg-amber-100 p-3 rounded-xl border border-amber-300 text-sm";
-            clueItem.innerHTML = `
-                <div class="font-bold text-amber-950 flex items-center gap-2">
-                    <i class="fa-solid fa-check-circle text-emerald-600"></i>
-                    ${quest.name}'s Case Clue
-                </div>
-                <p class="text-amber-800 text-xs mt-1">${quest.clue}</p>
-            `;
-            cluesList.appendChild(clueItem);
-        }
-
-        function toggleNotebook() {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-            const modal = document.getElementById('notebook-modal');
-            modal.classList.toggle('hidden');
-        }
-
-        function triggerVictory() {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-            document.getElementById('final-score').innerText = `${gameState.score} PTS`;
-            document.getElementById('victory-modal').classList.remove('hidden');
-        }
+        // Launch Game on Window Load
+        window.onload = function () {
+            init3D();
+            setupTouchControls();
+        };
     </script>
 </body>
 </html>
